@@ -93,8 +93,7 @@ def get_instantid_pipeline():
         ),
         'vae': AutoencoderKL.from_pretrained(
             "madebyollin/sdxl-vae-fp16-fix",
-            torch_dtype=torch_dtype,
-            use_safetensors=True),
+            torch_dtype=torch_dtype),
         'torch_dtype': torch_dtype,
         'add_watermarker': False,
     }
