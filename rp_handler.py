@@ -237,7 +237,7 @@ PIPELINE.load_lora_weights(CURRENT_LORA_WEIGHTS)
 
 # pipe.load_lora_weights("./loras/details_.safetensors", adapter_name="details")
 # pipe.set_adapters(["Dune", "details"], adapter_weights=[0.8, 0.8])
-PIPELINE.fuse_lora()
+PIPELINE.fuse_lora(lora_scale=0.7)
 # self.pipe.load_lora_weights("models/Dune_Movie_Loha2.safetensors")
 
 
