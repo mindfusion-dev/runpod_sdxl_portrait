@@ -58,6 +58,128 @@ def fetch_instantid_checkpoints():
         local_dir_use_symlinks=False
     )
 
+    hf_hub_download(
+        repo_id='ProomptEngineer/pe-neon-sign-style',
+        filename='PE_NeonSignStyle.safetensors',
+        local_dir='./loras',
+        local_dir_use_symlinks=False
+    )
+
+    hf_hub_download(
+        repo_id='BlaireSilver13/dollx_style',
+        filename='xdlx_style.safetensors',
+        local_dir='./loras',
+        local_dir_use_symlinks=False
+    )
+
+    hf_hub_download(
+        repo_id="nerijs/pixel-art-xl",
+        filename="pixel-art-xl.safetensors",
+        local_dir="./loras",
+    )
+
+    hf_hub_download(
+        repo_id="Fictiverse/Voxel_XL_Lora",
+        filename="VoxelXL_v1.safetensors",
+        local_dir="./loras",
+    )
+    
+    hf_hub_download(
+        repo_id="Akbartus/Medieval-Illustration-Lora,
+        filename="vintage_illust.safetensors",
+        local_dir="./loras",
+    )
+    
+    hf_hub_download(
+        repo_id="KappaNeuro/stop-motion-animation",
+        filename="Stop-Motion Animation.safetensors",
+        local_dir="./loras",
+    )
+    
+    hf_hub_download(
+        repo_id="KappaNeuro/surreal-collage",
+        filename="Surreal Collage.safetensors",
+        local_dir="./loras",
+    )
+    
+    hf_hub_download(
+        repo_id='sintecs/SDXL_Loras',
+        filename="Ath_stuffed-toy_XL.safetensors",
+        local_dir="./loras",
+    )
+    
+    hf_hub_download(
+        repo_id='sintecs/SDXL_Loras',
+        filename="Cute_Collectible.safetensors",
+        local_dir="./loras",
+    )
+    
+    hf_hub_download(
+        repo_id='sintecs/SDXL_Loras',
+        filename="EldritchComicsXL1.2.safetensors",
+        local_dir="./loras",
+    )
+    
+    hf_hub_download(
+        repo_id='sintecs/SDXL_Loras',
+        filename="Graphic_Portrait.safetensors",
+        local_dir="./loras",
+    )
+    
+    hf_hub_download(
+        repo_id='sintecs/SDXL_Loras',
+        filename="J_cartoon.safetensors",
+        local_dir="./loras",
+    )
+    
+    hf_hub_download(
+        repo_id='sintecs/SDXL_Loras',
+        filename="Lucasarts.safetensors",
+        local_dir="./loras",
+    )
+    
+    hf_hub_download(
+        repo_id='sintecs/SDXL_Loras',
+        filename="SDXL_MSPaint_Portrait.safetensors",
+        local_dir="./loras",
+    )
+    
+    hf_hub_download(
+        repo_id='sintecs/SDXL_Loras',
+        filename="SouthParkRay.safetensors",
+        local_dir="./loras",
+    )
+    
+    hf_hub_download(
+        repo_id='sintecs/SDXL_Loras',
+        filename="Vintage_Street_Photo.safetensors",
+        local_dir="./loras",
+    )
+
+    hf_hub_download(
+        repo_id='sintecs/SDXL_Loras',
+        filename="poluzzle.safetensors",
+        local_dir="./loras",
+    )
+
+    hf_hub_download(
+        repo_id='sintecs/SDXL_Loras',
+        filename="sketch_it.safetensors",
+        local_dir="./loras",
+    )
+
+    hf_hub_download(
+        repo_id='sintecs/SDXL_Loras',
+        filename="vapor_graphic_sdxl.safetensors",
+        local_dir="./loras",
+    )
+
+    hf_hub_download(
+        repo_id='sintecs/SDXL_Loras',
+        filename="y2k3dnerdessence_v0.0.1.safetensors",
+        local_dir="./loras",
+    )
+
 
 def fetch_pretrained_model(model_name, **kwargs):
     """
