@@ -11,7 +11,7 @@ def fetch_instantid_checkpoints():
     hf_hub_download(
         repo_id='h94/IP-Adapter-FaceID',
         filename='ip-adapter-faceid-portrait_sdxl.bin',
-        local_dir='./models',
+        local_dir='./',
         local_dir_use_symlinks=False
     )
 

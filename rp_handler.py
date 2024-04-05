@@ -294,7 +294,7 @@ def predict(
 
     ip_model: IPAdapterFaceIDXL = IPAdapterFaceIDXL(
         PIPELINE,
-        "models/ip-adapter-faceid-portrait_sdxl.bin",
+        "ip-adapter-faceid-portrait_sdxl.bin",
         device,
         16,
         n_cond=n_cond)
