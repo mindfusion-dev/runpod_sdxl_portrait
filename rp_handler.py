@@ -50,6 +50,34 @@ DEFAULT_MODEL = 'frankjoshua/albedobaseXL_v13'
 DEFAULT_STYLE_NAME = 'Watercolor'
 
 
+# Load face encoder
+class KarrasDPM:
+    def from_config(config):
+        return DPMSolverMultistepScheduler.from_config(config,
+                                                       use_karras_sigmas=True)
+
+
+SCHEDULERS = {
+    "DDIM": DDIMScheduler,
+    "DPMSolverMultistep": DPMSolverMultistepScheduler,
+    "HeunDiscrete": HeunDiscreteScheduler,
+    "KarrasDPM": KarrasDPM,
+    "K_EULER_ANCESTRAL": EulerAncestralDiscreteScheduler,
+    "K_EULER": EulerDiscreteScheduler,
+    "PNDM": PNDMScheduler,
+}
+
+LORA_WEIGHTS_MAPPING = {
+    "3D": "./loras/3DRedmond-3DRenderStyle-3DRenderAF.safetensors",
+    "Emoji": "./loras/emoji.safetensors",
+    "Video game": "./loras/PS1Redmond-PS1Game-Playstation1Graphics.safetensors",
+    "Pixels": "./loras/PixelArtRedmond-Lite64.safetensors",
+    "Clay": "./loras/ClayAnimationRedm.safetensors",
+    "Toy": "./loras/ToyRedmond-FnkRedmAF.safetensors",
+    "Dune": "./loras/DuneStylev1.0.safetensors"
+}
+
+
 def load_image(image_file: str):
     if image_file.startswith('http://') or image_file.startswith('https://'):
         response = requests.get(image_file)
@@ -152,33 +180,6 @@ def resize_img(input_image, max_side=1280, min_side=1024, size=None,
     return input_image
 
 
-# Load face encoder
-class KarrasDPM:
-    def from_config(config):
-        return DPMSolverMultistepScheduler.from_config(config,
-                                                       use_karras_sigmas=True)
-
-
-SCHEDULERS = {
-    "DDIM": DDIMScheduler,
-    "DPMSolverMultistep": DPMSolverMultistepScheduler,
-    "HeunDiscrete": HeunDiscreteScheduler,
-    "KarrasDPM": KarrasDPM,
-    "K_EULER_ANCESTRAL": EulerAncestralDiscreteScheduler,
-    "K_EULER": EulerDiscreteScheduler,
-    "PNDM": PNDMScheduler,
-}
-
-LORA_WEIGHTS_MAPPING = {
-    "3D": "./loras/3DRedmond-3DRenderStyle-3DRenderAF.safetensors",
-    "Emoji": "./loras/emoji.safetensors",
-    "Video game": "./loras/PS1Redmond-PS1Game-Playstation1Graphics.safetensors",
-    "Pixels": "./loras/PixelArtRedmond-Lite64.safetensors",
-    "Clay": "./loras/ClayAnimationRedm.safetensors",
-    "Toy": "./loras/ToyRedmond-FnkRedmAF.safetensors",
-}
-
-
 def get_depth_map(image, depth_estimator):
     image = depth_estimator(image)["depth"]
     image = np.array(image)
@@ -202,37 +203,41 @@ vae = AutoencoderKL.from_pretrained("madebyollin/sdxl-vae-fp16-fix",
                                     torch_dtype=torch.float16,
                                     use_safetensors=True)
 
-# pipe: StableDiffusionXLPipeline = \
-#     StableDiffusionXLPipeline.from_pretrained(
-#         DEFAULT_MODEL,
-#         # "rubbrband/albedobaseXL_v21",
-#         # "krnl/realisticVisionV51_v51VAE",
-#         # "stablediffusionapi/juggernaut-xl-v9",
-#         # "frankjoshua/albedobaseXL_v13",
-#         torch_dtype=torch.float16,
-#         scheduler=noise_scheduler,
-#         add_watermarker=False,
-#         vae=vae
-#     )
-controlnet = ControlNetModel.from_pretrained(
-    "thibaud/controlnet-openpose-sdxl-1.0", torch_dtype=torch.float16
-)
-
-pipe: StableDiffusionXLControlNetPipeline = \
-    StableDiffusionXLControlNetPipeline.from_pretrained(
-        "depth-zoe-xl-v1.0-controlnet",
+PIPELINE: StableDiffusionXLPipeline = \
+    StableDiffusionXLPipeline.from_pretrained(
+        DEFAULT_MODEL,
+        # "rubbrband/albedobaseXL_v21",
+        # "krnl/realisticVisionV51_v51VAE",
+        # "stablediffusionapi/juggernaut-xl-v9",
+        # "frankjoshua/albedobaseXL_v13",
         torch_dtype=torch.float16,
         scheduler=noise_scheduler,
         add_watermarker=False,
-        controlnet=controlnet,
         vae=vae
     )
-pipe.scheduler = SCHEDULERS["KarrasDPM"].from_config(pipe.scheduler.config)
+# controlnet = ControlNetModel.from_pretrained(
+#     "thibaud/controlnet-openpose-sdxl-1.0", torch_dtype=torch.float16
+# )
 
-pipe.load_lora_weights(LORA_WEIGHTS_MAPPING["3D"])
+# pipe: StableDiffusionXLControlNetPipeline = \
+#     StableDiffusionXLControlNetPipeline.from_pretrained(
+#         "depth-zoe-xl-v1.0-controlnet",
+#         torch_dtype=torch.float16,
+#         scheduler=noise_scheduler,
+#         add_watermarker=False,
+#         controlnet=controlnet,
+#         vae=vae
+#     )
+
+PIPELINE.scheduler = SCHEDULERS["KarrasDPM"].from_config(PIPELINE.scheduler.config)
+CURRENT_STYLE = "3D"
+CURRENT_LORA_WEIGHTS = LORA_WEIGHTS_MAPPING[CURRENT_STYLE]
+
+PIPELINE.load_lora_weights(CURRENT_LORA_WEIGHTS)
+
 # pipe.load_lora_weights("./loras/details_.safetensors", adapter_name="details")
 # pipe.set_adapters(["Dune", "details"], adapter_weights=[0.8, 0.8])
-pipe.fuse_lora(lora_scale=0.8)
+PIPELINE.fuse_lora()
 # self.pipe.load_lora_weights("models/Dune_Movie_Loha2.safetensors")
 
 
@@ -247,9 +252,6 @@ logger = RunPodLogger()
 # ---------------------------------------------------------------------------- #
 # Application Functions                                                        #
 # ---------------------------------------------------------------------------- #
-
-
-CURRENT_MODEL = DEFAULT_MODEL
 
 
 def apply_style(style_name: str,
@@ -276,12 +278,13 @@ def predict(
         style="3D",
         style_name="Watercolor"
         ):
-    global CURRENT_MODEL, PIPELINE
-    if style != "3D":
-        pipe.unfuse_lora()
-        pipe.unload_lora_weights()
-        pipe.load_lora_weights(LORA_WEIGHTS_MAPPING.get(style))
-        pipe.fuse_lora(lora_scale=0.8)
+    global CURRENT_STYLE, PIPELINE
+    if style != CURRENT_STYLE:
+        PIPELINE.unfuse_lora()
+        PIPELINE.unload_lora_weights()
+        PIPELINE.load_lora_weights(LORA_WEIGHTS_MAPPING.get(style))
+        PIPELINE.fuse_lora(lora_scale=0.8)
+        CURRENT_STYLE = style
 
     image = file(image_url)
     img_path = image["file_path"]
@@ -290,7 +293,7 @@ def predict(
     n_cond = faceid_embeds.shape[1]
 
     ip_model: IPAdapterFaceIDXL = IPAdapterFaceIDXL(
-        pipe,
+        PIPELINE,
         "models/ip-adapter-faceid-portrait_sdxl.bin",
         device,
         16,
@@ -342,20 +345,20 @@ def handler(job):
 
         images = predict(
             job['id'],
-            payload.get('image_url'),#
-            payload.get('pose_image'),#
+            payload.get('image_url'),
+            payload.get('pose_image'),
             payload.get('inference_steps'),
-            payload.get('scale'),#
-            payload.get('guidance_scale'),#
-            payload.get('prompt'),#
-            payload.get('negative_prompt'),#
-            payload.get('embeds_path'),#
-            payload.get('batch'),#
-            payload.get('seed'),#
-            payload.get('width'),#
-            payload.get('height'),#
-            payload.get('style'),#
-            payload.get('style_name')#
+            payload.get('scale'),
+            payload.get('guidance_scale'),
+            payload.get('prompt'),
+            payload.get('negative_prompt'),
+            payload.get('embeds_path'),
+            payload.get('batch'),
+            payload.get('seed'),
+            payload.get('width'),
+            payload.get('height'),
+            payload.get('style'),
+            payload.get('style_name')
         )
 
         result_image = images[0]

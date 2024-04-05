@@ -51,6 +51,13 @@ def fetch_instantid_checkpoints():
         local_dir_use_symlinks=False
     )
 
+    hf_hub_download(
+        repo_id='sintecs/SDXL_Loras',
+        filename='DuneStylev1.0.safetensors',
+        local_dir='./loras',
+        local_dir_use_symlinks=False
+    )
+
 
 def fetch_pretrained_model(model_name, **kwargs):
     """
