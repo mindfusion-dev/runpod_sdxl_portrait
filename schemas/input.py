@@ -1,5 +1,4 @@
 INPUT_SCHEMA = {
-    
     'image_url': {
         'type': str,
         'required': True,
@@ -9,20 +8,20 @@ INPUT_SCHEMA = {
         'required': False,
         'default': None
     },
-    "infer_steps": {
+    "inference_steps": {
         'type': int,
         'required': False,
-        'default': 30
+        'default': 50
+    },
+    "scale": {
+        'type': float,
+        'required': False,
+        'default': 0.8
     },
     'guidance_scale': {
         'type': float,
         'required': False,
         'default': 5
-    },
-    "sale": {
-        'type': float,
-        'required': False,
-        'default': 0.8
     },
     'prompt': {
         'type': str,
@@ -59,14 +58,14 @@ INPUT_SCHEMA = {
         'required': False,
         'default': 1200
     },
-    'style_name': {
-        'type': str,
-        'required': False,
-        'default': 'Watercolor'
-    },
     "style": {
         'type': str,
         'required': False,
         'default': '3D'
+    },
+    'style_name': {
+        'type': str,
+        'required': False,
+        'default': 'Watercolor'
     }
 }
