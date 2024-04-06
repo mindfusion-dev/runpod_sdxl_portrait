@@ -15,7 +15,7 @@ def fetch_instantid_checkpoints():
         local_dir_use_symlinks=False
     )
 
-     # DL Loras
+    # DL Loras
     hf_hub_download(
         repo_id='artificialguybr/3DRedmond-V1',
         filename='3DRedmond-3DRenderStyle-3DRenderAF.safetensors',

@@ -73,26 +73,26 @@ LORA_WEIGHTS_MAPPING = {
     "Pixels": "./loras/PixelArtRedmond-Lite64.safetensors",
     "Clay": "./loras/ClayAnimationRedm.safetensors",
     "Dune": "./loras/DuneStylev1.0.safetensors",
-    "Neon": "./loras/PE_NeonSignStyle.safetensors",
+    "Neon": "./loras/PE_NeonSignStyle.safetensors",#
     "dollx": "./loras/xdlx_style.safetensors",
     "PixelArt": "./loras/pixel-art-xl.safetensors",
-    "Voxel": "./loras/VoxelXL_v1.safetensors",
-    "Midieval": "./loras/vintage_illust.safetensors",
+    "Voxel": "./loras/VoxelXL_v1.safetensors",#
+    "Midieval": "./loras/vintage_illust.safetensors",#
     "stop_motion": "./loras/Stop-Motion Animation.safetensors",
     "surreal": "./loras/Surreal Collage.safetensors",
     "stuffed_toy": "./loras/Ath_stuffed-toy_XL.safetensors",
     "cute_collect": "./loras/Cute_Collectible.safetensors",
     "comics": "./loras/EldritchComicsXL1.2.safetensors",
-    "graphic_portrait": "./loras/Graphic_Portrait.safetensors",
+    "graphic_portrait": "./loras/Graphic_Portrait.safetensors",#
     "cartoon": "./loras/J_cartoon.safetensors",
     "Lucasarts": "./loras/Lucasarts.safetensors",
     "mspaint": "./loras/SDXL_MSPaint_Portrait.safetensors",
-    "southpark": "./loras/SouthParkRay.safetensors",
-    "vintage": "./loras/Vintage_Street_Photo.safetensors",
-    "poluzzle": "./loras/poluzzle.safetensors",
-    "sketch": "./loras/sketch_it.safetensors",
-    "vapor": "./loras/vapor_graphic_sdxl.safetensors",
-    "oldgame": "./loras/y2k3dnerdessence_v0.0.1.safetensors",
+    "southpark": "./loras/SouthParkRay.safetensors",#
+    "vintage": "./loras/Vintage_Street_Photo.safetensors",#
+    "poluzzle": "./loras/poluzzle.safetensors",#
+    "sketch": "./loras/sketch_it.safetensors",#
+    "vapor": "./loras/vapor_graphic_sdxl.safetensors",#
+    "oldgame": "./loras/y2k3dnerdessence_v0.0.1.safetensors",#
 }
 
 
@@ -221,18 +221,18 @@ vae = AutoencoderKL.from_pretrained("madebyollin/sdxl-vae-fp16-fix",
                                     torch_dtype=torch.float16,
                                     use_safetensors=True)
 
-PIPELINE: StableDiffusionXLPipeline = \
-    StableDiffusionXLPipeline.from_pretrained(
-        DEFAULT_MODEL,
-        # "rubbrband/albedobaseXL_v21",
-        # "krnl/realisticVisionV51_v51VAE",
-        # "stablediffusionapi/juggernaut-xl-v9",
-        # "frankjoshua/albedobaseXL_v13",
-        torch_dtype=torch.float16,
-        scheduler=noise_scheduler,
-        add_watermarker=False,
-        vae=vae
-    )
+# PIPELINE: StableDiffusionXLPipeline = \
+#     StableDiffusionXLPipeline.from_pretrained(
+#         DEFAULT_MODEL,
+#         # "rubbrband/albedobaseXL_v21",
+#         # "krnl/realisticVisionV51_v51VAE",
+#         # "stablediffusionapi/juggernaut-xl-v9",
+#         # "frankjoshua/albedobaseXL_v13",
+#         torch_dtype=torch.float16,
+#         scheduler=noise_scheduler,
+#         add_watermarker=False,
+#         vae=vae
+#     )
 # controlnet = ControlNetModel.from_pretrained(
 #     "thibaud/controlnet-openpose-sdxl-1.0", torch_dtype=torch.float16
 # )
@@ -247,20 +247,37 @@ PIPELINE: StableDiffusionXLPipeline = \
 #         vae=vae
 #     )
 
-PIPELINE.scheduler = SCHEDULERS["KarrasDPM"].from_config(PIPELINE.scheduler.config)
+
+PRE_LOAD_LORAS = ["Neon", "Voxel", "Midieval"]  # "graphic_portrait", "southpark", "vintage", "poluzzle", "sketch", "vapor", "oldgame"]
+
+PRE_LOAD_LORAS_DICT = {
+    "Neon": "./loras/PE_NeonSignStyle.safetensors",
+    "Voxel": "./loras/VoxelXL_v1.safetensors",
+    "Midieval": "./loras/vintage_illust.safetensors"
+}
+
+pipelines = {}
+for lora_name, lora_weights in PRE_LOAD_LORAS_DICT.items():
+    new_pipeline = StableDiffusionXLPipeline.from_pretrained(
+        DEFAULT_MODEL,
+        torch_dtype=torch.float16,
+        scheduler=noise_scheduler,
+        add_watermarker=False,
+        vae=vae
+    )
+    new_pipeline.scheduler = SCHEDULERS["KarrasDPM"].from_config(
+        new_pipeline.scheduler.config)
+    new_pipeline.load_lora_weights(lora_weights)
+    new_pipeline.fuse_lora()
+    pipelines[lora_name] = new_pipeline
+
+# PIPELINE.scheduler = SCHEDULERS["KarrasDPM"].from_config(PIPELINE.scheduler.config)
 CURRENT_STYLE = "3D"
 CURRENT_LORA_WEIGHTS = LORA_WEIGHTS_MAPPING[CURRENT_STYLE]
 
-PIPELINE.load_lora_weights(CURRENT_LORA_WEIGHTS)
+# PIPELINE.load_lora_weights(CURRENT_LORA_WEIGHTS)
 
-# pipe.load_lora_weights("./loras/details_.safetensors", adapter_name="details")
-# pipe.set_adapters(["Dune", "details"], adapter_weights=[0.8, 0.8])
-PIPELINE.fuse_lora()
-# self.pipe.load_lora_weights("models/Dune_Movie_Loha2.safetensors")
-
-
-# pipe.unfuse_lora()
-# pipe.unload_lora_weights()
+# PIPELINE.fuse_lora()
 
 
 app = FaceidAcquirer()
@@ -297,7 +314,11 @@ def predict(
         style_name="Watercolor"
         ):
     global CURRENT_STYLE, PIPELINE
-    if style != CURRENT_STYLE:
+    if style in PRE_LOAD_LORAS:
+        PIPELINE = pipelines[style]
+        CURRENT_STYLE = style
+    # style != CURRENT_STYLE
+    else:
         PIPELINE.unfuse_lora()
         PIPELINE.unload_lora_weights()
         PIPELINE.load_lora_weights(LORA_WEIGHTS_MAPPING.get(style))
