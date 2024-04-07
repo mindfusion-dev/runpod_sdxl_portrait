@@ -262,7 +262,7 @@ vae = AutoencoderKL.from_pretrained("madebyollin/sdxl-vae-fp16-fix",
 #     )
 
 
-PRE_LOAD_LORAS = ["Neon", "Voxel", "Midieval", "graphic_portrait", "southpark", "vintage"] #"poluzzle", "sketch", "vapor", "oldgame"]
+PRE_LOAD_LORAS = ["Neon", "Voxel", "Midieval"]  # "graphic_portrait", "southpark", "vintage"] #"poluzzle", "sketch", "vapor", "oldgame"]
 
 PRE_LOAD_LORAS_DICT = {
     "Neon": "./loras/PE_NeonSignStyle.safetensors",
@@ -389,9 +389,9 @@ def predict(
             s_scale=1,
             # image=pose_image,
         )
-        print_gpu_info("GENERATED")
-        torch.cuda.empty_cache()
-        gc.collect()
+    print_gpu_info("GENERATED")
+    torch.cuda.empty_cache()
+    gc.collect()
 
     return images
     # grid = image_grid(images, int(batch**0.5), int(batch**0.5))
