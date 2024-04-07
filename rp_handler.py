@@ -235,43 +235,18 @@ vae = AutoencoderKL.from_pretrained("madebyollin/sdxl-vae-fp16-fix",
                                     torch_dtype=torch.float16,
                                     use_safetensors=True)
 
-# PIPELINE: StableDiffusionXLPipeline = \
-#     StableDiffusionXLPipeline.from_pretrained(
-#         DEFAULT_MODEL,
-#         # "rubbrband/albedobaseXL_v21",
-#         # "krnl/realisticVisionV51_v51VAE",
-#         # "stablediffusionapi/juggernaut-xl-v9",
-#         # "frankjoshua/albedobaseXL_v13",
-#         torch_dtype=torch.float16,
-#         scheduler=noise_scheduler,
-#         add_watermarker=False,
-#         vae=vae
-#     )
-# controlnet = ControlNetModel.from_pretrained(
-#     "thibaud/controlnet-openpose-sdxl-1.0", torch_dtype=torch.float16
-# )
-
-# pipe: StableDiffusionXLControlNetPipeline = \
-#     StableDiffusionXLControlNetPipeline.from_pretrained(
-#         "depth-zoe-xl-v1.0-controlnet",
-#         torch_dtype=torch.float16,
-#         scheduler=noise_scheduler,
-#         add_watermarker=False,
-#         controlnet=controlnet,
-#         vae=vae
-#     )
-
-
 PRE_LOAD_LORAS = ["Neon", "Voxel", "Midieval"]  # "graphic_portrait", "southpark", "vintage"] #"poluzzle", "sketch", "vapor", "oldgame"]
 
 PRE_LOAD_LORAS_DICT = {
     "Neon": "./loras/PE_NeonSignStyle.safetensors",
     "Voxel": "./loras/VoxelXL_v1.safetensors",
     "Midieval": "./loras/vintage_illust.safetensors",
-    "graphic_portrait": "./loras/Graphic_Portrait.safetensors",
-    "southpark": "./loras/SouthParkRay.safetensors",
-    "vintage": "./loras/Vintage_Street_Photo.safetensors",
+    "None": "./loras/Vintage_Street_Photo.safetensors"
+    # "graphic_portrait": "./loras/Graphic_Portrait.safetensors",
+    # "southpark": "./loras/SouthParkRay.safetensors",
+    # "vintage": "./loras/Vintage_Street_Photo.safetensors",
 }
+CURRENT_STYLE = "vintage"
 
 print_gpu_info("PRELOAD LORAS")
 pipelines = {}
@@ -291,8 +266,7 @@ for lora_name, lora_weights in PRE_LOAD_LORAS_DICT.items():
 print_gpu_info("POST LOAD LORAS")
 
 # PIPELINE.scheduler = SCHEDULERS["KarrasDPM"].from_config(PIPELINE.scheduler.config)
-CURRENT_STYLE = "3D"
-CURRENT_LORA_WEIGHTS = LORA_WEIGHTS_MAPPING[CURRENT_STYLE]
+
 
 # PIPELINE.load_lora_weights(CURRENT_LORA_WEIGHTS)
 
@@ -335,19 +309,21 @@ def predict(
     with torch.no_grad():
         print_gpu_info("START PREDICT")
         global CURRENT_STYLE, PIPELINE
-        if style in PRE_LOAD_LORAS:
-            PIPELINE = pipelines[style]
-            CURRENT_STYLE = style
-        # style != CURRENT_STYLE
-        else:
-            start_time = time.time()
-            PIPELINE.unfuse_lora()
-            PIPELINE.unload_lora_weights()
-            PIPELINE.load_lora_weights(LORA_WEIGHTS_MAPPING.get(style))
-            PIPELINE.fuse_lora(lora_scale=0.8)
-            CURRENT_STYLE = style
-            print(f"LORA change time: {time.time() - start_time}")
-            print_gpu_info("UNFUSE AND LOAD NEW LORA")
+        if style != CURRENT_STYLE:
+            if style in PRE_LOAD_LORAS:
+                PIPELINE = pipelines[style]
+                CURRENT_STYLE = style
+            # style != CURRENT_STYLE
+            else:
+                PIPELINE = pipelines["None"]
+                start_time = time.time()
+                PIPELINE.unfuse_lora()
+                PIPELINE.unload_lora_weights()
+                PIPELINE.load_lora_weights(LORA_WEIGHTS_MAPPING.get(style))
+                PIPELINE.fuse_lora(lora_scale=0.8)
+                CURRENT_STYLE = style
+                print(f"LORA change time: {time.time() - start_time}")
+                print_gpu_info("UNFUSE AND LOAD NEW LORA")
 
         image = file(image_url)
         img_path = image["file_path"]
