@@ -240,7 +240,7 @@ PRE_LOAD_LORAS = ["Neon", "Voxel", "Midieval"]  # "graphic_portrait", "southpark
 PRE_LOAD_LORAS_DICT = {
     "Neon": "./loras/PE_NeonSignStyle.safetensors",
     "Voxel": "./loras/VoxelXL_v1.safetensors",
-    "Midieval": "./loras/vintage_illust.safetensors",
+    # "Midieval": "./loras/vintage_illust.safetensors",
     "None": "./loras/Vintage_Street_Photo.safetensors"
     # "graphic_portrait": "./loras/Graphic_Portrait.safetensors",
     # "southpark": "./loras/SouthParkRay.safetensors",
