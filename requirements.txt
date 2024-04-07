@@ -19,3 +19,4 @@ importlib_metadata
 numpy
 scikit-image
 mediapipe
+GPUtil
