@@ -257,7 +257,7 @@ for lora_name, lora_weights in PRE_LOAD_LORAS_DICT.items():
         scheduler=noise_scheduler,
         add_watermarker=False,
         vae=vae
-    )
+    ).to(device)
     new_pipeline.scheduler = SCHEDULERS["KarrasDPM"].from_config(
         new_pipeline.scheduler.config)
     new_pipeline.load_lora_weights(lora_weights)
