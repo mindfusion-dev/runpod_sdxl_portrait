@@ -1,4 +1,6 @@
+import gc
 import os
+import time
 import torch
 import cv2
 import math
@@ -39,6 +41,7 @@ from huggingface_hub import hf_hub_download
 from schemas.input import INPUT_SCHEMA
 from style_template import styles
 from model_util import load_models_xl, get_torch_device
+import GPUtil
 
 
 # Global variables
@@ -55,6 +58,17 @@ class KarrasDPM:
     def from_config(config):
         return DPMSolverMultistepScheduler.from_config(config,
                                                        use_karras_sigmas=True)
+
+
+def print_gpu_info(step: str):
+    gpus = GPUtil.getGPUs()
+    for gpu in gpus:
+        print(f"STEP: {step}")
+        print(f"GPU: {gpu.id}, Name: {gpu.name}")
+        print(f"\tTotal Memory: {gpu.memoryTotal}MB")
+        print(f"\tUsed Memory: {gpu.memoryUsed}MB")
+        print(f"\tFree Memory: {gpu.memoryFree}MB")
+        print(f"\tGPU Load: {gpu.load * 100}%")
 
 
 SCHEDULERS = {
@@ -259,6 +273,7 @@ PRE_LOAD_LORAS_DICT = {
     "vintage": "./loras/Vintage_Street_Photo.safetensors",
 }
 
+print_gpu_info("PRELOAD LORAS")
 pipelines = {}
 for lora_name, lora_weights in PRE_LOAD_LORAS_DICT.items():
     new_pipeline = StableDiffusionXLPipeline.from_pretrained(
@@ -273,6 +288,7 @@ for lora_name, lora_weights in PRE_LOAD_LORAS_DICT.items():
     new_pipeline.load_lora_weights(lora_weights)
     new_pipeline.fuse_lora()
     pipelines[lora_name] = new_pipeline
+print_gpu_info("POST LOAD LORAS")
 
 # PIPELINE.scheduler = SCHEDULERS["KarrasDPM"].from_config(PIPELINE.scheduler.config)
 CURRENT_STYLE = "3D"
@@ -316,58 +332,67 @@ def predict(
         style="3D",
         style_name="Watercolor"
         ):
-    global CURRENT_STYLE, PIPELINE
-    if style in PRE_LOAD_LORAS:
-        PIPELINE = pipelines[style]
-        CURRENT_STYLE = style
-    # style != CURRENT_STYLE
-    else:
-        PIPELINE.unfuse_lora()
-        PIPELINE.unload_lora_weights()
-        PIPELINE.load_lora_weights(LORA_WEIGHTS_MAPPING.get(style))
-        PIPELINE.fuse_lora(lora_scale=0.8)
-        CURRENT_STYLE = style
+    with torch.no_grad():
+        print_gpu_info("START PREDICT")
+        global CURRENT_STYLE, PIPELINE
+        if style in PRE_LOAD_LORAS:
+            PIPELINE = pipelines[style]
+            CURRENT_STYLE = style
+        # style != CURRENT_STYLE
+        else:
+            start_time = time.time()
+            PIPELINE.unfuse_lora()
+            PIPELINE.unload_lora_weights()
+            PIPELINE.load_lora_weights(LORA_WEIGHTS_MAPPING.get(style))
+            PIPELINE.fuse_lora(lora_scale=0.8)
+            CURRENT_STYLE = style
+            print(f"LORA change time: {time.time() - start_time}")
+            print_gpu_info("UNFUSE AND LOAD NEW LORA")
 
-    image = file(image_url)
-    img_path = image["file_path"]
+        image = file(image_url)
+        img_path = image["file_path"]
 
-    faceid_embeds = app.get_multi_embeds(img_path)
-    n_cond = faceid_embeds.shape[1]
+        faceid_embeds = app.get_multi_embeds(img_path)
+        n_cond = faceid_embeds.shape[1]
 
-    ip_model: IPAdapterFaceIDXL = IPAdapterFaceIDXL(
-        PIPELINE,
-        "ip-adapter-faceid-portrait_sdxl.bin",
-        device,
-        16,
-        n_cond=n_cond)
+        ip_model: IPAdapterFaceIDXL = IPAdapterFaceIDXL(
+            PIPELINE,
+            "ip-adapter-faceid-portrait_sdxl.bin",
+            device,
+            16,
+            n_cond=n_cond)
 
-    if embeds_path is None:
-        suffix = os.path.basename(img_path).split('.')[1]
-        txt_path = img_path.replace(suffix, 'txt')
-    else:
-        txt_path = embeds_path.replace('npy', 'txt')
-    print(f"txt_path:{txt_path}")
+        if embeds_path is None:
+            suffix = os.path.basename(img_path).split('.')[1]
+            txt_path = img_path.replace(suffix, 'txt')
+        else:
+            txt_path = embeds_path.replace('npy', 'txt')
+        print(f"txt_path:{txt_path}")
 
-    if os.path.exists(txt_path):
-        with open(txt_path, 'r')as f:
-            prompt = f.readlines()[0]
-    prompt = prompt if prompt is None else prompt
-    # prompt, negative_prompt = apply_style(style_name, prompt, negative_prompt)
+        if os.path.exists(txt_path):
+            with open(txt_path, 'r')as f:
+                prompt = f.readlines()[0]
+        prompt = prompt if prompt is None else prompt
+        # prompt, negative_prompt = apply_style(style_name, prompt, negative_prompt)
 
-    print(f"prompt:{prompt}\n negative_prompt:{negative_prompt}")
-    images = ip_model.generate(
-        prompt=prompt,
-        negative_prompt=negative_prompt,
-        faceid_embeds=faceid_embeds,
-        num_samples=batch,
-        width=width, height=height,
-        num_inference_steps=inference_steps,
-        seed=seed,
-        scale=scale,
-        guidance_scale=guidance_scale,
-        s_scale=1,
-        # image=pose_image,
-    )
+        print(f"prompt:{prompt}\n negative_prompt:{negative_prompt}")
+        images = ip_model.generate(
+            prompt=prompt,
+            negative_prompt=negative_prompt,
+            faceid_embeds=faceid_embeds,
+            num_samples=batch,
+            width=width, height=height,
+            num_inference_steps=inference_steps,
+            seed=seed,
+            scale=scale,
+            guidance_scale=guidance_scale,
+            s_scale=1,
+            # image=pose_image,
+        )
+        print_gpu_info("GENERATED")
+        torch.cuda.empty_cache()
+        gc.collect()
+
     return images
     # grid = image_grid(images, int(batch**0.5), int(batch**0.5))
     # output_img_path = f"./{uuid.uuid4()}.jpg"
