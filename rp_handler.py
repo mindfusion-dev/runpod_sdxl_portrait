@@ -235,11 +235,11 @@ vae = AutoencoderKL.from_pretrained("madebyollin/sdxl-vae-fp16-fix",
                                     torch_dtype=torch.float16,
                                     use_safetensors=True)
 
-PRE_LOAD_LORAS = ["Neon", "Voxel", "Midieval"]  # "graphic_portrait", "southpark", "vintage"] #"poluzzle", "sketch", "vapor", "oldgame"]
+PRE_LOAD_LORAS = ["Neon"] #  "Voxel", "Midieval"]  # "graphic_portrait", "southpark", "vintage"] #"poluzzle", "sketch", "vapor", "oldgame"]
 
 PRE_LOAD_LORAS_DICT = {
     "Neon": "./loras/PE_NeonSignStyle.safetensors",
-    "Voxel": "./loras/VoxelXL_v1.safetensors",
+    # "Voxel": "./loras/VoxelXL_v1.safetensors",
     # "Midieval": "./loras/vintage_illust.safetensors",
     "None": "./loras/Vintage_Street_Photo.safetensors"
     # "graphic_portrait": "./loras/Graphic_Portrait.safetensors",
