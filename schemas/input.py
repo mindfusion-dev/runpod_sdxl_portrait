@@ -62,10 +62,5 @@ INPUT_SCHEMA = {
         'type': str,
         'required': False,
         'default': '3D'
-    },
-    'style_name': {
-        'type': str,
-        'required': False,
-        'default': 'Watercolor'
     }
 }

@@ -1,5 +1,11 @@
 import torch
-from diffusers import DDIMScheduler, AutoencoderKL, StableDiffusionXLPipeline
+from diffusers import (DDIMScheduler,
+                       AutoencoderKL,
+                       StableDiffusionXLPipeline,
+                       ControlNetModel,
+                       StableDiffusionXLControlNetPipeline)
+from controlnet_aux import OpenposeDetector
+
 from huggingface_hub import hf_hub_download
 
 
@@ -174,7 +180,8 @@ def fetch_pretrained_model(model_name, **kwargs):
     max_retries = 3
     for attempt in range(max_retries):
         try:
-            return StableDiffusionXLPipeline.from_pretrained(model_name, **kwargs)
+            return StableDiffusionXLControlNetPipeline.from_pretrained(
+                model_name, **kwargs)
         except OSError as err:
             if attempt < max_retries - 1:
                 print(
@@ -188,7 +195,11 @@ def get_instantid_pipeline():
     Fetches the InstantID pipeline from the HuggingFace model hub.
     """
     torch_dtype = torch.float16
-    # depth-zoe-xl-v1.0-controlnet.safetensors
+    OpenposeDetector.from_pretrained("lllyasviel/ControlNet")
+
+    controlnet = ControlNetModel.from_pretrained(
+        "thibaud/controlnet-openpose-sdxl-1.0",
+        torch_dtype=torch.float16)
     args = {
         'scheduler': DDIMScheduler(
             num_train_timesteps=1000,
@@ -204,6 +215,7 @@ def get_instantid_pipeline():
             torch_dtype=torch_dtype),
         'torch_dtype': torch_dtype,
         'add_watermarker': False,
+        'controlnet': controlnet,
     }
 
     pipeline = fetch_pretrained_model('frankjoshua/albedobaseXL_v13', **args)

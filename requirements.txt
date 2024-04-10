@@ -20,3 +20,4 @@ numpy
 scikit-image
 mediapipe
 GPUtil
+controlnet_aux
