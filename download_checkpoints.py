@@ -6,6 +6,7 @@ from diffusers import (DDIMScheduler,
                        StableDiffusionXLControlNetPipeline)
 # from controlnet_aux import OpenposeDetector
 from transformers import pipeline
+from controlnet_aux import ZoeDetector
 
 from huggingface_hub import hf_hub_download
 
@@ -181,6 +182,7 @@ def fetch_pretrained_model(model_name, **kwargs):
     max_retries = 3
     for attempt in range(max_retries):
         try:
+            ZoeDetector.from_pretrained("lllyasviel/Annotators")
             return StableDiffusionXLControlNetPipeline.from_pretrained(
                 model_name, **kwargs)
         except OSError as err:
@@ -201,10 +203,6 @@ def get_instantid_pipeline():
     # controlnet = ControlNetModel.from_pretrained(
     #     "thibaud/controlnet-openpose-sdxl-1.0",
     #     torch_dtype=torch.float16)
-    pipeline('depth-estimation')
-    controlnet = ControlNetModel.from_pretrained(
-        "lllyasviel/sd-controlnet-depth", torch_dtype=torch.float16
-    )
 
     args = {
         'scheduler': DDIMScheduler(
@@ -221,7 +219,9 @@ def get_instantid_pipeline():
             torch_dtype=torch_dtype),
         'torch_dtype': torch_dtype,
         'add_watermarker': False,
-        'controlnet': controlnet,
+        'controlnet': ControlNetModel.from_pretrained(
+            "diffusers/controlnet-zoe-depth-sdxl-1.0",
+            torch_dtype=torch.float16)
     }
 
     pipe = fetch_pretrained_model('frankjoshua/albedobaseXL_v13', **args)

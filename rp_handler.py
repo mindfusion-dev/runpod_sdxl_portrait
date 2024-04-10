@@ -23,6 +23,7 @@ from diffusers import (DDIMScheduler,
                        HeunDiscreteScheduler,
                        PNDMScheduler,
                        StableDiffusionXLControlNetPipeline)
+from controlnet_aux import ZoeDetector
 
 import runpod
 from runpod.serverless.utils.rp_validator import validate
@@ -212,6 +213,18 @@ def resize_img(input_image, max_side=1280, min_side=1024, size=None,
     return input_image
 
 
+def center_crop_image_as_square(img: Image.Image):
+    square_size = min(img.size)
+
+    left = (img.width - square_size) / 2
+    top = (img.height - square_size) / 2
+    right = (img.width + square_size) / 2
+    bottom = (img.height + square_size) / 2
+
+    img_cropped = img.crop((left, top, right, bottom))
+    return img_cropped
+
+
 def get_depth_map(image, depth_estimator):
     image = depth_estimator(image)["depth"]
     image = np.array(image)
@@ -244,8 +257,8 @@ depth_estimator = pipeline('depth-estimation')
 #     torch_dtype=torch.float16)
 
 controlnet = ControlNetModel.from_pretrained(
-    "lllyasviel/sd-controlnet-depth", torch_dtype=torch.float16
-)
+    "diffusers/controlnet-zoe-depth-sdxl-1.0",
+    torch_dtype=torch.float16)
 
 CURRENT_STYLE = "3D"
 PIPELINE: StableDiffusionXLControlNetPipeline = \
@@ -265,6 +278,9 @@ PIPELINE.load_lora_weights(
     LORA_WEIGHTS_MAPPING.get(CURRENT_STYLE))
 
 PIPELINE.fuse_lora()
+
+zoe = ZoeDetector.from_pretrained("lllyasviel/Annotators")
+zoe.to(device)
 
 
 app = FaceidAcquirer()
@@ -298,7 +314,8 @@ def predict(
         width: int = 880,
         height: int = 1200,
         style="3D",
-        controlnet_conditioning_scale=1.0
+        controlnet_conditioning_scale=1.0,
+        resize_controlnet=False
         ):
     with torch.no_grad():
         print_gpu_info("START PREDICT")
@@ -318,13 +335,12 @@ def predict(
         faceid_embeds = app.get_multi_embeds(img_path)
         n_cond = faceid_embeds.shape[1]
 
-        pose_image = diffusers.utils.load_image(image_url)
-        pose_image = depth_estimator(pose_image)['depth']
-        pose_image = np.array(pose_image)
-        pose_image = pose_image[:, :, None]
-        pose_image = np.concatenate([pose_image, pose_image, pose_image],
-                                    axis=2)
-        pose_image = Image.fromarray(pose_image)
+        with torch.no_grad():
+            face_image: Image = Image.open(img_path)
+            face_image = center_crop_image_as_square(face_image)
+            image_zoe = zoe(face_image)
+            if resize_controlnet:
+                image_zoe.resize((height, width))
 
         # openpose_image = openpose(pose_image)
 
@@ -360,7 +376,7 @@ def predict(
             scale=scale,
             guidance_scale=guidance_scale,
             s_scale=1,
-            image=pose_image,
+            image=image_zoe,
             controlnet_conditioning_scale=controlnet_conditioning_scale
         )
     print_gpu_info("GENERATED")
@@ -396,7 +412,8 @@ def handler(job):
             payload.get('width'),
             payload.get('height'),
             payload.get('style'),
-            payload.get('controlnet_conditioning_scale')
+            payload.get('controlnet_conditioning_scale'),
+            payload.get('resize_controlnet')
         )
 
         result_image = images[0]

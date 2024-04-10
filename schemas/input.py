@@ -68,4 +68,9 @@ INPUT_SCHEMA = {
         'required': False,
         'default': 1.0
     },
+    'resize_controlnet': {
+        'type': bool,
+        'required': False,
+        'default': True
+    },
 }
