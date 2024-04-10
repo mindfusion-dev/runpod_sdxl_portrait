@@ -21,3 +21,4 @@ scikit-image
 mediapipe
 GPUtil
 controlnet_aux
+timm==0.6.7
