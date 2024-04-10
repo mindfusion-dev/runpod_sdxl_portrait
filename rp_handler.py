@@ -12,6 +12,7 @@ import traceback
 
 from PIL import Image, ImageOps
 
+from transformers import pipeline
 import diffusers
 from diffusers import (DDIMScheduler,
                        AutoencoderKL,
@@ -27,7 +28,7 @@ import runpod
 from runpod.serverless.utils.rp_validator import validate
 from runpod.serverless.utils.rp_download import file
 from runpod.serverless.modules.rp_logger import RunPodLogger
-from controlnet_aux import OpenposeDetector
+# from controlnet_aux import OpenposeDetector
 
 from utils import FaceidAcquirer
 from ip_adapter.ip_adapter_faceid_separate import IPAdapterFaceIDXL
@@ -154,7 +155,11 @@ def convert_from_image_to_cv2(img: Image) -> np.ndarray:
     return cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
 
 
-def draw_kps(image_pil, kps, color_list=[(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (255, 0, 255)]):
+def draw_kps(image_pil, kps, color_list=[(255, 0, 0),
+                                         (0, 255, 0),
+                                         (0, 0, 255),
+                                         (255, 255, 0),
+                                         (255, 0, 255)]):
     stickwidth = 4
     limbSeq = np.array([[0, 2], [1, 2], [3, 2], [4, 2]])
     kps = np.array(kps)
@@ -230,11 +235,17 @@ vae = AutoencoderKL.from_pretrained("madebyollin/sdxl-vae-fp16-fix",
                                     torch_dtype=torch.float16,
                                     use_safetensors=True)
 
-openpose = OpenposeDetector.from_pretrained("lllyasviel/ControlNet")
+depth_estimator = pipeline('depth-estimation')
+
+# openpose = OpenposeDetector.from_pretrained("lllyasviel/ControlNet")
+
+# controlnet = ControlNetModel.from_pretrained(
+#     "thibaud/controlnet-openpose-sdxl-1.0",
+#     torch_dtype=torch.float16)
 
 controlnet = ControlNetModel.from_pretrained(
-    "thibaud/controlnet-openpose-sdxl-1.0",
-    torch_dtype=torch.float16)
+    "lllyasviel/sd-controlnet-depth", torch_dtype=torch.float16
+)
 
 CURRENT_STYLE = "3D"
 PIPELINE: StableDiffusionXLControlNetPipeline = \
@@ -308,7 +319,14 @@ def predict(
         n_cond = faceid_embeds.shape[1]
 
         pose_image = diffusers.utils.load_image(image_url)
-        openpose_image = openpose(pose_image)
+        pose_image = depth_estimator(pose_image)['depth']
+        pose_image = np.array(pose_image)
+        pose_image = pose_image[:, :, None]
+        pose_image = np.concatenate([pose_image, pose_image, pose_image],
+                                    axis=2)
+        pose_image = Image.fromarray(pose_image)
+
+        # openpose_image = openpose(pose_image)
 
         ip_model: IPAdapterFaceIDXL = IPAdapterFaceIDXL(
             PIPELINE,
@@ -342,7 +360,7 @@ def predict(
             scale=scale,
             guidance_scale=guidance_scale,
             s_scale=1,
-            image=openpose_image,
+            image=pose_image,
             controlnet_conditioning_scale=controlnet_conditioning_scale
         )
     print_gpu_info("GENERATED")

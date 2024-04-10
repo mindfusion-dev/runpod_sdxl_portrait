@@ -4,7 +4,8 @@ from diffusers import (DDIMScheduler,
                        StableDiffusionXLPipeline,
                        ControlNetModel,
                        StableDiffusionXLControlNetPipeline)
-from controlnet_aux import OpenposeDetector
+# from controlnet_aux import OpenposeDetector
+from transformers import pipeline
 
 from huggingface_hub import hf_hub_download
 
@@ -195,11 +196,16 @@ def get_instantid_pipeline():
     Fetches the InstantID pipeline from the HuggingFace model hub.
     """
     torch_dtype = torch.float16
-    OpenposeDetector.from_pretrained("lllyasviel/ControlNet")
+    # OpenposeDetector.from_pretrained("lllyasviel/ControlNet")
 
+    # controlnet = ControlNetModel.from_pretrained(
+    #     "thibaud/controlnet-openpose-sdxl-1.0",
+    #     torch_dtype=torch.float16)
+    pipeline('depth-estimation')
     controlnet = ControlNetModel.from_pretrained(
-        "thibaud/controlnet-openpose-sdxl-1.0",
-        torch_dtype=torch.float16)
+        "lllyasviel/sd-controlnet-depth", torch_dtype=torch.float16
+    )
+
     args = {
         'scheduler': DDIMScheduler(
             num_train_timesteps=1000,
@@ -218,9 +224,9 @@ def get_instantid_pipeline():
         'controlnet': controlnet,
     }
 
-    pipeline = fetch_pretrained_model('frankjoshua/albedobaseXL_v13', **args)
+    pipe = fetch_pretrained_model('frankjoshua/albedobaseXL_v13', **args)
 
-    return pipeline
+    return pipe
 
 
 if __name__ == '__main__':
