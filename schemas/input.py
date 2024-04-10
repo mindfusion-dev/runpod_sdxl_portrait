@@ -62,5 +62,10 @@ INPUT_SCHEMA = {
         'type': str,
         'required': False,
         'default': '3D'
-    }
+    },
+    "controlnet_conditioning_scale": {
+        'type': float,
+        'required': False,
+        'default': 1.0
+    },
 }

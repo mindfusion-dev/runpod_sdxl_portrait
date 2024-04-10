@@ -287,6 +287,7 @@ def predict(
         width: int = 880,
         height: int = 1200,
         style="3D",
+        controlnet_conditioning_scale=1.0
         ):
     with torch.no_grad():
         print_gpu_info("START PREDICT")
@@ -342,6 +343,7 @@ def predict(
             guidance_scale=guidance_scale,
             s_scale=1,
             image=openpose_image,
+            controlnet_conditioning_scale=controlnet_conditioning_scale
         )
     print_gpu_info("GENERATED")
     torch.cuda.empty_cache()
@@ -376,6 +378,7 @@ def handler(job):
             payload.get('width'),
             payload.get('height'),
             payload.get('style'),
+            payload.get('controlnet_conditioning_scale')
         )
 
         result_image = images[0]
